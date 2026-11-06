@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Академия будущих вожатых</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #ffffff;
+    color: #222;
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 40px 16px 80px;
+  }
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    margin: 0 0 8px;
+    letter-spacing: 0.2px;
+  }
+  .subtitle {
+    font-size: 14px;
+    color: #777;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .card {
+    width: 100%;
+    max-width: 560px;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 24px;
+  }
+  /* Переключатель пола */
+  .gender-block {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .gender-block .glabel {
+    font-size: 13px;
+    color: #666;
+    margin-right: 4px;
+  }
+  .gender-btn {
+    padding: 7px 18px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    background: #fff;
+    color: #444;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .gender-btn:hover { border-color: #bbb; }
+  .gender-btn.active {
+    background: #222;
+    color: #fff;
+    border-color: #222;
+  }
+  .field { margin-bottom: 16px; }
+  label {
+    display: block;
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 6px;
+  }
+  label span.num { color: #999; }
+  input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type="text"]:focus { border-color: #999; }
+  input.missing { border-color: #e57373; }
+  button.gen {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: #222;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.15s;
+  }
+  button.gen:hover { opacity: 0.85; }
+  .result {
+    margin-top: 24px;
+    padding: 20px;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    font-size: 15px;
+    line-height: 1.7;
+    display: none;
+    white-space: pre-wrap;
+  }
+  .result .fill {
+    font-weight: 700;
+    border-bottom: 1px dashed #bbb;
+  }
+  .error {
+    color: #c62828;
+    font-size: 13px;
+    margin-top: 10px;
+    display: none;
+    text-align: center;
+  }
+  footer {
+    position: fixed;
+    bottom: 16px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 12px;
+    color: #aaa;
+    padding: 0 16px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Генератор историй вожатого</h1>
+<div class="subtitle">Выбери пол, заполни все поля и нажми кнопку!</div>
+
+<div class="gender-block">
+  <span class="glabel">Пол вожатого:</span>
+  <button class="gender-btn active" data-gender="m">Мужской</button>
+  <button class="gender-btn" data-gender="f">Женский</button>
+</div>
+
+<div class="card" id="formCard">
+  <div id="fields"></div>
+  <button class="gen" id="generateBtn">Сгенерировать историю</button>
+  <div class="error" id="errorMsg">Заполни, пожалуйста, все поля!</div>
+</div>
+
+<div class="result" id="result"></div>
+
+<footer>Вожатский отряд «Академия будущих вожатых»</footer>
+
+<script>
+  // ==========================================================
+  //  Гендерные пометки в шаблонах записываются в виде:
+  //    {м:форма_м|ж:форма_ж}       — разные формы
+  //    {м:форма_м|ж:форма_ж}       (пример: {м:встал|ж:встала})
+  //  Если формы совпадают, можно писать {м:слово|ж:слово}
+  //  или просто использовать слово без пометок.
+  // ==========================================================
+
+  const stories = [
+    {
+      title: "Обычный рабочий день",
+      template:
+        "Мой день в лагере начался в 7:00 утра с громкого звука {1}. Я нехотя {м:встал|ж:встала}, {м:надел|ж:надела} {2} и {м:отправился|ж:отправилась} будить детей.\n\n" +
+        "Первым проснулся {3}, который заявил, что сегодня он вообще-то не собирается вставать, потому что ему приснился {4}.\n\n" +
+        "После завтрака мы отправились на зарядку. Я {м:решил|ж:решила} показать детям пример и так активно {м:прыгал|ж:прыгала}, что случайно {5}. Дети смеялись, а я {м:делал|ж:делала} вид, что всё так и было задумано.\n\n" +
+        "Днём мы пошли на мероприятие, где мне пришлось объяснять, почему {6} нельзя использовать вместо микрофона.",
+      prompts: [
+        "Существительное",
+        "Предмет одежды",
+        "Имя",
+        "Существительное",
+        "Глагол (в прошедшем времени, м.р.)",
+        "Существительное"
+      ]
+    },
+    {
+      title: "Вожатый против режима дня",
+      template:
+        "Утро началось с того, что один из детей разбудил меня фразой: «А можно сегодня не идти на {1}?»\n\n" +
+        "Я {м:ответил|ж:ответила}, что нельзя, {м:поправил|ж:поправила} {2} и {м:пошёл|ж:пошла} проверять отряд.\n\n" +
+        "В комнате № 3 происходило что-то странное: дети пытались приготовить {3} из {4}, а один мальчик уверял, что это секретное задание от директора.\n\n" +
+        "На обеде я случайно {м:перепутал|ж:перепутала} свою тарелку с тарелкой ребёнка и {м:съел|ж:съела} его {5}. Пришлось срочно извиняться и обещать компенсацию в виде пяти минут дополнительного свободного времени.\n\n" +
+        "После тихого часа мы отправились на прогулку. Всё шло прекрасно, пока один из детей не спросил: «А почему у вас {6}?»",
+      prompts: [
+        "Существительное",
+        "Предмет одежды",
+        "Существительное",
+        "Существительное во множественном числе",
+        "Название еды",
+        "Прилагательное"
+      ]
+    },
+    {
+      title: "Последний день смены",
+      template:
+        "Сегодня последний день смены. Я {м:проснулся|ж:проснулась} с чувством {1} и сразу {м:понял|ж:поняла}, что сегодня произойдёт что-то необычное.\n\n" +
+        "Дети решили устроить мне сюрприз. Они торжественно вручили мне {2}, украшенный {3}, и заявили, что это самый лучший подарок в моей жизни.\n\n" +
+        "На прощальном мероприятии я {м:решил|ж:решила} сказать трогательную речь, но вместо этого случайно {м:произнёс|ж:произнесла}: «Дорогие наши {4}, спасибо, что вы были с нами!»\n\n" +
+        "Весь отряд начал смеяться, а я {м:пытался|ж:пыталась} сохранить серьёзное лицо.\n\n" +
+        "После линейки один ребёнок подошёл ко мне и спросил: «А вы точно вернётесь в следующем году?»\n\n" +
+        "Я {м:посмотрел|ж:посмотрела} на него, затем на {5} в своих руках и уверенно {м:ответил|ж:ответила}: «Конечно! Но сначала мне нужно {6}».",
+      prompts: [
+        "Существительное",
+        "Существительное",
+        "Существительное",
+        "Существительное во множественном числе",
+        "Существительное",
+        "Глагол (в инфинитиве)"
+      ]
+    }
+  ];
+
+  let current = null;
+  let inputs = [];
+  let gender = "m"; // "m" или "f"
+
+  const fieldsContainer = document.getElementById("fields");
+  const generateBtn = document.getElementById("generateBtn");
+  const resultDiv = document.getElementById("result");
+  const errorMsg = document.getElementById("errorMsg");
+  const formCard = document.getElementById("formCard");
+  const genderBtns = document.querySelectorAll(".gender-btn");
+
+  // Переключение пола
+  genderBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      genderBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      gender = btn.dataset.gender;
+    });
+  });
+
+  function pickRandomStory() {
+    return stories[Math.floor(Math.random() * stories.length)];
+  }
+
+  function renderForm(story) {
+    fieldsContainer.innerHTML = "";
+    inputs = [];
+
+    story.prompts.forEach((prompt, i) => {
+      const field = document.createElement("div");
+      field.className = "field";
+
+      const label = document.createElement("label");
+      label.innerHTML = `<span class="num">${i + 1}.</span> ${prompt}`;
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "Впиши слово…";
+      input.dataset.index = i;
+
+      field.appendChild(label);
+      field.appendChild(input);
+      fieldsContainer.appendChild(field);
+      inputs.push(input);
+    });
+
+    inputs.forEach(inp => {
+      inp.addEventListener("input", () => {
+        inp.classList.remove("missing");
+        errorMsg.style.display = "none";
+      });
+    });
+  }
+
+  // Обработка шаблона: подставляем {n} и раскрываем {м:..|ж:..}
+  function buildStory(story, values, g) {
+    // 1) Сначала раскрываем гендерные конструкции
+    let text = story.template.replace(/\{м:([^|}]+)\|ж:([^}]+)\}/g, (_, m, f) => {
+      return g === "m" ? m : f;
+    });
+
+    // 2) Теперь подставляем плейсхолдеры {n} и экранируем остальной текст
+    const parts = text.split(/(\{\d+\})/g);
+    let html = "";
+
+    parts.forEach(part => {
+      const match = part.match(/^\{(\d+)\}$/);
+      if (match) {
+        const idx = parseInt(match[1], 10) - 1;
+        const val = values[idx] || "…";
+        html += `<span class="fill">${escapeHtml(val)}</span>`;
+      } else {
+        html += escapeHtml(part);
+      }
+    });
+
+    return html;
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function generate() {
+    const values = inputs.map(inp => inp.value.trim());
+    let hasEmpty = false;
+
+    inputs.forEach((inp, i) => {
+      if (!values[i]) {
+        inp.classList.add("missing");
+        hasEmpty = true;
+      } else {
+        inp.classList.remove("missing");
+      }
+    });
+
+    if (hasEmpty) {
+      errorMsg.style.display = "block";
+      resultDiv.style.display = "none";
+      return;
+    }
+
+    errorMsg.style.display = "none";
+
+    const html = buildStory(current, values, gender);
+    const genderLabel = gender === "m" ? "мужской" : "женский";
+
+    resultDiv.innerHTML =
+      `<div style="font-size:13px;color:#999;margin-bottom:12px;">История № ${stories.indexOf(current) + 1}. «${escapeHtml(current.title)}» · пол: ${genderLabel}</div>` +
+      html +
+      `<div style="margin-top:24px;"><button id="againBtn" style="width:100%;padding:12px;font-size:15px;font-weight:600;background:#fff;color:#222;border:1px solid #ddd;border-radius:8px;cursor:pointer;">Сгенерировать другую историю</button></div>`;
+
+    resultDiv.style.display = "block";
+    formCard.style.display = "none";
+
+    document.getElementById("againBtn").addEventListener("click", resetGame);
+    resultDiv.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function resetGame() {
+    current = pickRandomStory();
+    renderForm(current);
+    resultDiv.style.display = "none";
+    resultDiv.innerHTML = "";
+    formCard.style.display = "block";
+    errorMsg.style.display = "none";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  generateBtn.addEventListener("click", generate);
+  resetGame();
+</script>
+
+</body>
+</html>
